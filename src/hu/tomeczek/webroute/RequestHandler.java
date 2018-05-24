@@ -7,22 +7,21 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.stream.Stream;
 
 public class RequestHandler implements HttpHandler {
 
-    private Method getMethodByRoute(String route, Class requestHandler) {
-        for (Method method : requestHandler.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(WebRoute.class)) {
-                if (isCurrentRoute(route, method)) {
-                    return method;
-                }
-            }
-        }
-        return null;
+    private Method getRelevantRouteHandlerMethod(String route, String requestMethod, Class requestHandler) {
+        return Stream.of(requestHandler.getDeclaredMethods())
+                .filter(handlerMethod -> handlerMethod.isAnnotationPresent(WebRoute.class))
+                .filter(handlerMethod -> isCurrentRoute(route, requestMethod, handlerMethod))
+                .findFirst()
+                .orElse(null);
     }
 
-    private boolean isCurrentRoute(String route, Method method) {
-        return method.getAnnotation(WebRoute.class).value().equals(route);
+    private boolean isCurrentRoute(String route, String requestMethod, Method handlerMethod) {
+        return handlerMethod.getAnnotation(WebRoute.class).path().equals(route)
+                && handlerMethod.getAnnotation(WebRoute.class).method().equals(requestMethod);
     }
 
     @Override
@@ -31,11 +30,15 @@ public class RequestHandler implements HttpHandler {
 
         // get the route from which the request was received
         String requestRoute = httpExchange.getRequestURI().toString();
+        String requestMethod = httpExchange.getRequestMethod();
 
         // get the necessary method for the current route
-        Method routeHandler = getMethodByRoute(requestRoute, requestHandler);
+        Method routeHandler = getRelevantRouteHandlerMethod(requestRoute, requestMethod, requestHandler);
         if (routeHandler == null) {
-            sendResponse(httpExchange, "The specified route does not exist on this server.");
+            sendResponse(
+                    httpExchange,
+                    "The specified route does not exist on this server or cannot be accessed with this request method."
+            );
             return;
         }
 
@@ -46,7 +49,7 @@ public class RequestHandler implements HttpHandler {
             exception.printStackTrace();
         }
 
-        //get and send the necessary response
+        //get and send the relevant response
         String response = (String) httpExchange.getAttribute("response");
         sendResponse(httpExchange, response);
     }
