@@ -6,6 +6,6 @@ import java.lang.annotation.*;
 @Target(ElementType.METHOD)
 public @interface WebRoute {
 
-    String value() default "/";
-
+    String method() default "GET";
+    String path() default "/";
 }
