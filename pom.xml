@@ -5,7 +5,7 @@
    <modelVersion>4.0.0</modelVersion>
 
    <groupId>com.codecool.javaee</groupId>
-   <artifactId>jpa-example</artifactId>
+   <artifactId>annotations-and-reflection</artifactId>
    <version>1.0-SNAPSHOT</version>
 
    <properties>
